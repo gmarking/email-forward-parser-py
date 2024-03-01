@@ -28,7 +28,7 @@ def loop_regexes_split(regexes, string, highest_position):
     return match
 
 
-def loop_regexes_match(regexes, string, earliest_position):
+def loop_regexes_match(regexes, string):
     # leave match a match object until we are returning, cleans up code
     match = None
     regex_matched = None
@@ -39,25 +39,15 @@ def loop_regexes_match(regexes, string, earliest_position):
         if not current_match:  # style note
             continue
         current_match_index = current_match.start()
-        if earliest_position:
-            # grab match that is closer to beginning of string
-            if match is None or current_match_index < match_index:
-                # match = current_match.string[current_match.start():current_match.end()]
-                match = current_match
-                match_index = current_match_index
-                regex_matched = re
-        else:
-            # match = current_match.string[current_match.start():current_match.end()]
+        # grab match that is closer to beginning of string
+        if match is None or current_match_index < match_index:
             match = current_match
             match_index = current_match_index
             regex_matched = re
-            break
 
     # Convert match from None to an empty list if no match is found
     if match is None:
         match = []
     else:
-        blah = [match.group(0)]
-        blah.extend(match.groups())
-        match = blah
+        match = [match.group(0)] + list(match.groups())
     return match, regex_matched

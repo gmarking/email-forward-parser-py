@@ -61,7 +61,7 @@ class ReadResult:
 
 
 def parse_subject(subject: str) -> str:
-    match, _ = loop_regexes_match(SUBJECT, subject, True)
+    match, _ = loop_regexes_match(SUBJECT, subject)
     if len(match) > 0:
         return trim_string(match[1])
     return ""
@@ -135,7 +135,7 @@ def parse_original_from(text: str, body: str) -> MailboxResult:
         if author.name or author.address:
             return author
 
-    match, pattern = loop_regexes_match(SEPARATOR_WITH_INFORMATION, body, True)
+    match, pattern = loop_regexes_match(SEPARATOR_WITH_INFORMATION, body)
     if len(match) == 4:
         named_matches = find_named_matches(pattern, body)
         return prepare_mailbox(
@@ -143,7 +143,7 @@ def parse_original_from(text: str, body: str) -> MailboxResult:
                 "from_address", "")
         )
 
-    match, _ = loop_regexes_match(ORIGINAL_FROM_LAX, text, True)
+    match, _ = loop_regexes_match(ORIGINAL_FROM_LAX, text)
     if len(match) > 1:
         name = match[2]
         address = match[3]
@@ -174,10 +174,10 @@ def parse_original_cc(text: str) -> list[MailboxResult]:
 
 
 def parse_original_subject(text: str) -> str:
-    match, _ = loop_regexes_match(ORIGINAL_SUBJECT, text, True)
+    match, _ = loop_regexes_match(ORIGINAL_SUBJECT, text)
     if match:
         return match[1].strip()
-    match, _ = loop_regexes_match(ORIGINAL_SUBJECT_LAX, text, True)
+    match, _ = loop_regexes_match(ORIGINAL_SUBJECT_LAX, text)
     if match:
         return match[1].strip()
 
@@ -185,17 +185,17 @@ def parse_original_subject(text: str) -> str:
 
 
 def parse_original_date(text: str, body: str) -> str:
-    match, _ = loop_regexes_match(ORIGINAL_DATE, text, True)
+    match, _ = loop_regexes_match(ORIGINAL_DATE, text)
     if match:
         return match[1].strip()
-    match, pattern = loop_regexes_match(SEPARATOR_WITH_INFORMATION, body, True)
+    match, pattern = loop_regexes_match(SEPARATOR_WITH_INFORMATION, body)
 
     if len(match) == 4:
         named_matches = find_named_matches(pattern, body)
         return named_matches.get("date", "").strip()
 
     text = loop_regexes_replace(ORIGINAL_SUBJECT_LAX, text)
-    match, _ = loop_regexes_match(ORIGINAL_DATE_LAX, text, True)
+    match, _ = loop_regexes_match(ORIGINAL_DATE_LAX, text)
     if match:
         return match[1].strip()
 
@@ -203,14 +203,14 @@ def parse_original_date(text: str, body: str) -> str:
 
 
 def parse_mailbox(regexes: list[Pattern], text: str) -> list[MailboxResult]:
-    match, _ = loop_regexes_match(regexes, text, True)
+    match, _ = loop_regexes_match(regexes, text)
     if match:
         mailboxes_line = match[-1].strip()
         if mailboxes_line:
             mailboxes = []
             while mailboxes_line:
                 mailbox_match, _ = loop_regexes_match(
-                    MAILBOX, mailboxes_line, True)
+                    MAILBOX, mailboxes_line)
                 if mailbox_match:
                     if len(mailbox_match) == 3:
                         name = mailbox_match[1]
@@ -235,7 +235,7 @@ def prepare_mailbox(name: str, address: str) -> MailboxResult:
     name = name.strip()
     address = address.strip()
 
-    match, _ = loop_regexes_match(MAILBOX_ADDRESS, address, True)
+    match, _ = loop_regexes_match(MAILBOX_ADDRESS, address)
     if not match:
         name = address
         address = ""
