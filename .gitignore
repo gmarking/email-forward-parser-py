@@ -2,5 +2,4 @@ emails/
 __pycache__/
 email_parser_venv/
 fixtures/
-forward_parser_test.py
 setup.cfg
