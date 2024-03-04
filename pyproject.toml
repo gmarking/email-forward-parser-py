@@ -22,7 +22,7 @@ Homepage = "https://github.com/gmarking/email-forward-parser-py"
 Issues = "https://github.com/gmarking/email-forward-parser-py/issues"
 
 [tool.pytest.ini_options]
-pythonpath = "email-forward-parser-py"
+pythonpath = "emailforward-parser"
 
 [tool.hatch.build.targets.wheel]
 packages = ["emailforwardparser"]

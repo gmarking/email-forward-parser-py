@@ -5,7 +5,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.parser import Parser
 
-from .forward_parser import MailboxResult, ForwardMetadata, ReadResultEmail, get_forwarded_metadata
+from emailforwardparser import forward_parser as fp
 
 
 class EmailParserClient:
@@ -16,11 +16,11 @@ class EmailParserClient:
         original_metadata = self._get_read_result(msg)
         return self._get_json(msg, original_metadata.email, original_metadata.forwarded)
 
-    def get_original_metadata(self, file_path: str) -> ForwardMetadata:
+    def get_original_metadata(self, file_path: str) -> fp.ForwardMetadata:
         msg = self._parse_file(file_path)
         return self._get_read_result(msg)
 
-    def _get_json(self, message: Message, email: ReadResultEmail, forwarded: bool) -> str:
+    def _get_json(self, message: Message, email: fp.ReadResultEmail, forwarded: bool) -> str:
         result = {}
         if forwarded:
             result["Send-To"] = message.get("To")
@@ -30,7 +30,7 @@ class EmailParserClient:
             result["eml"] = self._build_original_email(email, message)
         return json.dumps(result)
 
-    def _build_original_email(self, metadata: ReadResultEmail, message: Message) -> str:
+    def _build_original_email(self, metadata: fp.ReadResultEmail, message: Message) -> str:
         if not message.is_multipart():
             result_message = EmailMessage()
             self._set_headers(result_message, metadata)
@@ -51,7 +51,7 @@ class EmailParserClient:
                 result_message.attach(part)
         return result_message.as_string()
 
-    def _set_headers(self, message: MIMEMultipart | EmailMessage, metadata: ReadResultEmail) -> None:
+    def _set_headers(self, message: MIMEMultipart | EmailMessage, metadata: fp.ReadResultEmail) -> None:
         message["Date"] = metadata.date
         message["Subject"] = metadata.subject
         message["From"] = metadata.from_.address
@@ -59,18 +59,19 @@ class EmailParserClient:
         if metadata.cc:
             message["CC"] = self._format_addresses(metadata.cc)
 
-    def _format_addresses(self, contacts: list[MailboxResult]) -> str:
+    def _format_addresses(self, contacts: list[fp.MailboxResult]) -> str:
         result = contacts[0].address
         for index in range(1, len(contacts)):
             result += ", " + contacts[index].address
         return result
 
-    def _get_read_result(self, message: Message) -> ForwardMetadata:
+    def _get_read_result(self, message: Message) -> fp.ForwardMetadata:
         body = self._get_body(message)
-        subject = self._get_subject(message)
-        if subject is not None:
-            return get_forwarded_metadata(body.strip(), subject.strip())
-        return get_forwarded_metadata(body.strip())
+        subject = message.get("Subject")
+        subject = subject if subject is not None else ""
+        if subject:
+            return fp.get_forwarded_metadata(body.strip(), subject.strip())
+        return fp.get_forwarded_metadata(body.strip())
 
     def _get_body(self, msg: Message) -> str:
         if msg.is_multipart():
@@ -85,10 +86,6 @@ class EmailParserClient:
             body = msg.get_payload()
 
         return body if isinstance(body, str) else ""
-
-    def _get_subject(self, msg: Message) -> str:
-        subject = msg.get("Subject")
-        return subject if subject is not None else ""
 
     def _parse_file(self, file_name: str) -> Message:
         with open(file_name, "r", encoding="utf8") as file:

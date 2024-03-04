@@ -16,16 +16,21 @@ def loop_regexes_split(regexes, string, highest_position):
     # 1) Successful split must return list with at least 2 items
     #
     match = []
+    match_other = []
     for regex in regexes:
         current_match = split_with_regexp(regex, string)
+        current_match_other = regex.split(string)
         if len(current_match) > 1:
             if highest_position:
                 if not match or len(match[0]) > len(current_match[0]):
                     match = current_match
+                if not match_other or len(match_other[0]) > len(current_match_other[0]):
+                    match_other = current_match_other
             else:
                 match = current_match
+                match_other = current_match_other
                 break
-    return match
+    return match, current_match_other
 
 
 def loop_regexes_match(regexes, string):

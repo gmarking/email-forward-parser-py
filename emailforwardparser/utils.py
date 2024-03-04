@@ -1,13 +1,10 @@
 import unicodedata
-
-
-def trim_string(s):
-    return s.strip()
+import re
 
 
 def is_graphic(char):
     """Check if a character is a graphic character."""
-    return unicodedata.category(char) in ['L', 'M', 'N', 'P', 'S', 'Z']
+    return unicodedata.category(char) in {'L', 'M', 'N', 'P', 'S', 'Z'}
 
 
 def preprocess_string(s: str) -> str:
@@ -42,14 +39,17 @@ def find_all_string_submatch_index(pattern, s, n=-1):
 
 
 def split_with_regexp(pattern, s):
-    # splitIndices = [match.span() for match in pattern.finditer(s)]
+    # test = [match.span() for match in pattern.finditer(s)]
     splitIndices = find_all_string_submatch_index(pattern, s)
-
-    result = []
-    prevIndex = 0
 
     if not splitIndices:
         return [s]
+
+    # if splitIndices:
+        # print(f"splitIndices: {splitIndices}")
+
+    result = []
+    prevIndex = 0
 
     newSplitIndices = []
     for indices in splitIndices:
@@ -78,15 +78,13 @@ def split_with_regexp(pattern, s):
 
     if prevIndex < len(s):
         result.append(s[prevIndex:])
+    # split = pattern.split(s)
+    # for index in range(len(split)):
 
+    #     print(f"{index} item: {split[index]}")
+    #     print()
+    # print()
+    # for index in range(result):
+    #     print(f"{index} result_item: {result[index]}")
+    #     print()
     return result
-
-
-def reconciliate_split_match(match, minSubstrings, defaultSubstrings, excludeFn):
-    str_ = "".join(match[i] for i in defaultSubstrings)
-    if len(match) > minSubstrings:
-        for i in range(minSubstrings, len(match)):
-            if excludeFn and excludeFn(i):
-                continue
-            str_ += match[i]
-    return str_
