@@ -20,7 +20,7 @@ class EmailParserClient:
         msg = self._parse_file(file_path)
         return self._get_read_result(msg)
 
-    def _get_json(self, message: Message, email: fp.ReadResultEmail, forwarded: bool) -> str:
+    def _get_json(self, message: Message, email: fp.OriginalMetadata, forwarded: bool) -> str:
         result = {}
         if forwarded:
             result["Send-To"] = message.get("To")
@@ -30,7 +30,7 @@ class EmailParserClient:
             result["eml"] = self._build_original_email(email, message)
         return json.dumps(result)
 
-    def _build_original_email(self, metadata: fp.ReadResultEmail, message: Message) -> str:
+    def _build_original_email(self, metadata: fp.OriginalMetadata, message: Message) -> str:
         if not message.is_multipart():
             result_message = EmailMessage()
             self._set_headers(result_message, metadata)
@@ -51,7 +51,7 @@ class EmailParserClient:
                 result_message.attach(part)
         return result_message.as_string()
 
-    def _set_headers(self, message: MIMEMultipart | EmailMessage, metadata: fp.ReadResultEmail) -> None:
+    def _set_headers(self, message: MIMEMultipart | EmailMessage, metadata: fp.OriginalMetadata) -> None:
         message["Date"] = metadata.date
         message["Subject"] = metadata.subject
         message["From"] = metadata.from_.address

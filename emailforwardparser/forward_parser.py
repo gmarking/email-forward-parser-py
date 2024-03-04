@@ -20,7 +20,7 @@ class ParseBodyResult:
 
 
 @dataclass
-class ParseOriginalEmailResult:
+class OriginalMetadata:
     """Class storing metadata of original content in forwarded message."""
     date: str = ""
     subject: str = ""
@@ -35,7 +35,7 @@ class ForwardMetadata:
     """Result object storing forwarded email metadata."""
     forwarded: bool = False
     message: str = ""
-    email: ParseOriginalEmailResult = field(default_factory=ParseOriginalEmailResult)
+    email: OriginalMetadata = field(default_factory=OriginalMetadata)
 
 
 def parse_subject(subject: str) -> str:
@@ -50,20 +50,9 @@ def parse_body(body: str, forwarded: bool) -> ParseBodyResult:
     body = regexs.BYTE_ORDER_MARK.sub("", body)
     body = regexs.TRAILING_NON_BREAKING_SPACE.sub("", body)
     body = regexs.NON_BREAKING_SPACE.sub(" ", body)
-    match, match_other = loop.loop_regexes_split(regexs.SEPARATOR, body, True)
-    # match [
-    #   "",
-    #   forward separator, i.e. "Begin forward message:"
-    #   email body
-    #
-    if len(match) > 1:
+    match = loop.loop_regexes_split(regexs.SEPARATOR, body, True)
+    if len(match) > 2:
         email = match[2]
-        email_other = email = match_other[1]
-        if email != email_other:
-            print("email1 not equal")
-            print()
-            print(f"current email1: {email}")
-            print(f"other email1: {email_other}")
         return ParseBodyResult(
             body=body,
             message=match[0].strip(),
@@ -71,18 +60,10 @@ def parse_body(body: str, forwarded: bool) -> ParseBodyResult:
         )
 
     if forwarded:
-        match, match_other = loop.loop_regexes_split(regexs.ORIGINAL_FROM, body, True)
+        match = loop.loop_regexes_split(
+            regexs.ORIGINAL_FROM, body, True)
         if len(match) > 2:
-            # email_other = "".join(match_other[i] for i in [0, 2])
-            print(f"match: {match}")
-            print()
-            print(f"match_other: {match_other}, len: {len(match_other)}")
             email = "".join(match[i] for i in [1, 3])
-            # if email != email_other:
-            #     print("email2 not equal")
-            #     print()
-            #     print(f"current email2: {email}")
-            #     print(f"other email1: {match_other}")
             return ParseBodyResult(
                 body=body, message=match[0].strip(), email=email.strip()
             )
@@ -91,43 +72,31 @@ def parse_body(body: str, forwarded: bool) -> ParseBodyResult:
 
 
 def parse_original_body(text: str) -> str:
-    regexes = [regexs.ORIGINAL_SUBJECT, regexs.ORIGINAL_CC, regexs.ORIGINAL_TO, regexs.ORIGINAL_REPLY_TO]
+    regexes = [regexs.ORIGINAL_SUBJECT, regexs.ORIGINAL_CC,
+               regexs.ORIGINAL_TO, regexs.ORIGINAL_REPLY_TO]
     current = 0
     for regex in regexes:
-        match, match_other = loop.loop_regexes_split(regex, text, True)
+        match = loop.loop_regexes_split(regex, text, True)
         if len(match) > 2 and match[3].startswith("\n\n"):
             body = match[3]
-            body_other = match_other[2]
-            if body != body_other:
-                print("body not equal")
-                print(f"body1: {body}")
-                print()
-                print(f"other body: {body_other}")
             return body.strip()
         current += 1
-    match, match_other = loop.loop_regexes_split(
+    match = loop.loop_regexes_split(
         regexs.ORIGINAL_SUBJECT + regexs.ORIGINAL_SUBJECT_LAX, text, True)
     if len(match) > 3:
-        print(len(match_other))
-        # body_other = match_other[2]
         body = match[3]
-        # if body != body_other:
-        #     print("body2 not equal")
-        #     print(f"body2: {body}")
-        #     print()
-        #     print(f"body2 other: {body_other}")
         return body.strip()
 
     return text.strip()
 
 
-def parse_original_email(text: str, body: str) -> ParseOriginalEmailResult:
+def parse_original_email(text: str, body: str) -> OriginalMetadata:
     text = regexs.BYTE_ORDER_MARK.sub("", text)
     text = regexs.QUOTE_LINE_BREAK.sub("", text)
     text = regexs.QUOTE.sub("", text)
     text = regexs.FOUR_SPACES.sub("", text)
 
-    return ParseOriginalEmailResult(
+    return OriginalMetadata(
         body=parse_original_body(text),
         from_=parse_original_from(text, body),
         to=parse_original_to(text),
@@ -144,7 +113,8 @@ def parse_original_from(text: str, body: str) -> MailboxResult:
         if author.name or author.address:
             return author
 
-    match, pattern = loop.loop_regexes_match(regexs.SEPARATOR_WITH_INFORMATION, body)
+    match, pattern = loop.loop_regexes_match(
+        regexs.SEPARATOR_WITH_INFORMATION, body)
     if len(match) == 4:
         named_matches = utils.find_named_matches(pattern, body)
         return prepare_mailbox(
@@ -197,7 +167,8 @@ def parse_original_date(text: str, body: str) -> str:
     match, _ = loop.loop_regexes_match(regexs.ORIGINAL_DATE, text)
     if match:
         return match[1].strip()
-    match, pattern = loop.loop_regexes_match(regexs.SEPARATOR_WITH_INFORMATION, body)
+    match, pattern = loop.loop_regexes_match(
+        regexs.SEPARATOR_WITH_INFORMATION, body)
 
     if len(match) == 4:
         named_matches = utils.find_named_matches(pattern, body)
@@ -254,7 +225,7 @@ def prepare_mailbox(name: str, address: str) -> MailboxResult:
 
 
 def get_forwarded_metadata(body: str, subject: str | None = None) -> ForwardMetadata:
-    email = ParseOriginalEmailResult()
+    email = OriginalMetadata()
     forwarded = False
     body_result = ParseBodyResult()
     parsed_subject = ""
@@ -276,7 +247,7 @@ def get_forwarded_metadata(body: str, subject: str | None = None) -> ForwardMeta
     return ForwardMetadata(
         forwarded=forwarded,
         message=body_result.message,
-        email=ParseOriginalEmailResult(
+        email=OriginalMetadata(
             date=email.date,
             subject=subject_result,
             body=email.body,

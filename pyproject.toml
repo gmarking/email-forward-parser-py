@@ -12,10 +12,6 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
 ]
-dependencies = [
-    "requests",
-    "ipaddress",
-]
 
 [project.urls]
 Homepage = "https://github.com/gmarking/email-forward-parser-py"

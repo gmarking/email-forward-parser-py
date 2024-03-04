@@ -1,5 +1,4 @@
 import unicodedata
-import re
 
 
 def is_graphic(char):
@@ -78,13 +77,5 @@ def split_with_regexp(pattern, s):
 
     if prevIndex < len(s):
         result.append(s[prevIndex:])
-    # split = pattern.split(s)
-    # for index in range(len(split)):
 
-    #     print(f"{index} item: {split[index]}")
-    #     print()
-    # print()
-    # for index in range(result):
-    #     print(f"{index} result_item: {result[index]}")
-    #     print()
     return result

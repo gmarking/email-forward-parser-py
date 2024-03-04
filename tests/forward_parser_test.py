@@ -1,4 +1,7 @@
-from emailforwardparser.forward_parser import get_forwarded_metadata, ForwardMetadata
+import os
+
+from emailforwardparser import forward_parser as fp
+
 from .cases import BODY_ONLY_CASES, BODY_SUBJECT_CASES
 
 test_subject = "Integer consequat non purus"
@@ -18,9 +21,11 @@ test_cc_name_1 = "Walter Sheltan"
 test_cc_address_2 = "nicholas@globex.corp"
 test_cc_name_2 = "Nicholas"
 
+
 def get_fixtures(email_file: str, subject_file: str):
     email_path = f"fixtures/{email_file}.txt"
     subject_path = f"fixtures/{subject_file}.txt"
+    print(os.getcwd())
 
     with open(email_path, 'r', encoding="utf8") as file:
         email = file.read()
@@ -32,15 +37,17 @@ def get_fixtures(email_file: str, subject_file: str):
 
     return email, subject
 
+
 def read_fixture_files(email_file: str, subject_file: str):
     email, subject = get_fixtures(email_file, subject_file)
-    return get_forwarded_metadata(email, subject)
+    return fp.get_forwarded_metadata(email, subject)
 
 
 def test_body_only():
     for entry in BODY_ONLY_CASES:
         result = read_fixture_files(entry, "")
         simple_asserts(entry, result)
+
 
 def test_body_and_subject():
     for entry in BODY_SUBJECT_CASES:
@@ -49,7 +56,8 @@ def test_body_and_subject():
         assert result.email.subject == test_subject
         simple_asserts(entry, result)
 
-def simple_asserts(entry: str, result: ForwardMetadata):
+
+def simple_asserts(entry: str, result: fp.ForwardMetadata):
     assert result.forwarded is True
     assert result.email.subject == test_subject
 
