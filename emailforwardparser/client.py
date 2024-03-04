@@ -9,14 +9,32 @@ from emailforwardparser import forward_parser as fp
 
 
 class EmailParserClient:
-    """Client for calling forward parser API."""
+    """
+    A client for parsing email messages, with support for detecting and handling forwarded emails.
+    """
 
     def get_original_eml(self, file_path: str) -> str:
+        """
+        Retrieve the original email message as a JSON string, including metadata and content.
+
+        :param file_path: The path to the email file to parse.
+        :type file_path: str
+        :return: A JSON string containing the email metadata and content.
+        :rtype: str
+        """
         msg = self._parse_file(file_path)
         original_metadata = self._get_read_result(msg)
         return self._get_json(msg, original_metadata.email, original_metadata.forwarded)
 
     def get_original_metadata(self, file_path: str) -> fp.ForwardMetadata:
+        """
+        Extract metadata from the original or forwarded email.
+
+        :param file_path: The path to the email file to parse.
+        :type file_path: str
+        :return: An object containing metadata of the original email.
+        :rtype: fp.ForwardMetadata
+        """
         msg = self._parse_file(file_path)
         return self._get_read_result(msg)
 
