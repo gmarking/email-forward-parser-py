@@ -23,7 +23,12 @@ class EmailParserClient:
         :rtype: str
         """
         msg = self._parse_file(file_path)
-        original_metadata = self._get_read_result(msg)
+        original_metadata = self._get_forwarded_metadata(msg)
+        if not original_metadata.forwarded:
+            eml = self._get_eml_attachment(msg)
+            if eml:
+                original_metadata = self._get_forwarded_metadata(eml)
+                msg = eml
         return self._get_json(msg, original_metadata.email, original_metadata.forwarded)
 
     def get_original_metadata(self, file_path: str) -> fp.ForwardMetadata:
@@ -36,22 +41,22 @@ class EmailParserClient:
         :rtype: fp.ForwardMetadata
         """
         msg = self._parse_file(file_path)
-        return self._get_read_result(msg)
+        return self._get_forwarded_metadata(msg)
 
     def _get_json(self, message: Message, email: fp.OriginalMetadata, forwarded: bool) -> str:
         result = {}
         if forwarded:
-            result["Send-To"] = message.get("To")
-            result["eml"] = message.as_string()
-        else:
-            result["Send-To"] = email.from_.address
+            result["Send-To"] = email.to[0].address
             result["eml"] = self._build_original_email(email, message)
+        else:
+            result["Send-To"] = message.get("From")
+            result["eml"] = message.as_string()
         return json.dumps(result)
 
     def _build_original_email(self, metadata: fp.OriginalMetadata, message: Message) -> str:
         if not message.is_multipart():
             result_message = EmailMessage()
-            self._set_headers(result_message, metadata)
+            result_message.set_payload(self._get_headers(metadata) + metadata.body)
             result_message.set_content(metadata.body)
             return result_message.as_string()
 
@@ -59,7 +64,7 @@ class EmailParserClient:
 
         cs = Charset("UTF-8")
         cs.body_encoding = QP
-        result_message.attach(MIMEText(metadata.body, "plain", _charset=cs))
+        result_message.attach(MIMEText(self._get_headers(metadata) + metadata.body, "plain", _charset=cs))
         payload = message.get_payload()
         if isinstance(payload, list):
             for part in payload:
@@ -67,15 +72,18 @@ class EmailParserClient:
                         and 'attachment' not in str(part.get('Content-Disposition'))):
                     continue
                 result_message.attach(part)
+        print(result_message.as_string())
         return result_message.as_string()
 
-    def _set_headers(self, message: MIMEMultipart | EmailMessage, metadata: fp.OriginalMetadata) -> None:
-        message["Date"] = metadata.date
-        message["Subject"] = metadata.subject
-        message["From"] = metadata.from_.address
-        message["To"] = self._format_addresses(metadata.to)
+    def _get_headers(self, metadata: fp.OriginalMetadata) -> str:
+        result = ""
+        result += "Date: " + metadata.date + "\n"
+        result += "Subject: " + metadata.subject + "\n"
+        result += "From: " + metadata.from_.address + "\n"
+        result += "To: " + self._format_addresses(metadata.to) + "\n"
         if metadata.cc:
-            message["CC"] = self._format_addresses(metadata.cc)
+            result += self._format_addresses(metadata.cc) + "\n"
+        return result + "\n\n"
 
     def _format_addresses(self, contacts: list[fp.MailboxResult]) -> str:
         result = contacts[0].address
@@ -83,7 +91,7 @@ class EmailParserClient:
             result += ", " + contacts[index].address
         return result
 
-    def _get_read_result(self, message: Message) -> fp.ForwardMetadata:
+    def _get_forwarded_metadata(self, message: Message) -> fp.ForwardMetadata:
         body = self._get_body(message)
         subject = message.get("Subject")
         subject = subject if subject is not None else ""
@@ -104,6 +112,13 @@ class EmailParserClient:
             body = msg.get_payload()
 
         return body if isinstance(body, str) else ""
+
+    def _get_eml_attachment(self, message: Message) -> Message:
+        for part in message.walk():
+            file_name = part.get_filename()
+            if (file_name is not None and file_name.endswith(".eml")):
+                return part.get_payload()[0]
+        return None
 
     def _parse_file(self, file_name: str) -> Message:
         with open(file_name, "r", encoding="utf8") as file:
