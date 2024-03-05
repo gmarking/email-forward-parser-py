@@ -1,4 +1,5 @@
 import json
+import re
 from email.charset import QP, Charset
 from email.message import EmailMessage, Message
 from email.mime.multipart import MIMEMultipart
@@ -49,7 +50,7 @@ class EmailParserClient:
             result["Send-To"] = email.to[0].address
             result["eml"] = self._build_original_email(email, message)
         else:
-            result["Send-To"] = message.get("From")
+            result["Send-To"] = re.search(r'[\w.+-]+@[\w-]+\.[\w.-]+', message.get("From")).group(0)
             result["eml"] = message.as_string()
         return json.dumps(result)
 
@@ -72,7 +73,6 @@ class EmailParserClient:
                         and 'attachment' not in str(part.get('Content-Disposition'))):
                     continue
                 result_message.attach(part)
-        print(result_message.as_string())
         return result_message.as_string()
 
     def _get_headers(self, metadata: fp.OriginalMetadata) -> str:
@@ -113,7 +113,7 @@ class EmailParserClient:
 
         return body if isinstance(body, str) else ""
 
-    def _get_eml_attachment(self, message: Message) -> Message:
+    def _get_eml_attachment(self, message: Message) -> Message | None:
         for part in message.walk():
             file_name = part.get_filename()
             if (file_name is not None and file_name.endswith(".eml")):
