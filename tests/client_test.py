@@ -1,7 +1,4 @@
 import json
-from re import L
-
-import pytest
 
 from emailforwardparser.client import EmailParserClient
 
@@ -70,7 +67,7 @@ def test_get_original_eml_case_1(mocker):
     client = EmailParserClient()
     mocker.patch("emailforwardparser.client.EmailParserClient._build_original_email", return_value=case_1)
     expected_send_to = "mary_doe@example.com"
-    data = json.loads(client.get_original_eml("fixtures/forwarded.eml"))
+    data = json.loads(client.get_original_eml_from_file("fixtures/forwarded.eml"))
     assert data["Send-To"] == expected_send_to
     assert data["eml"] == case_1
 
@@ -79,7 +76,7 @@ def test_get_original_eml_case_2(mocker):
     client = EmailParserClient()
     mocker.patch("emailforwardparser.client.EmailParserClient._build_original_email", return_value=case_2_3)
     expected_send_to = "jane_doe@example.com"
-    data = json.loads(client.get_original_eml("fixtures/non_forwarded_eml_attached.eml"))
+    data = json.loads(client.get_original_eml_from_file("fixtures/non_forwarded_eml_attached.eml"))
     assert data["Send-To"] == expected_send_to
     assert data["eml"] == case_2_3
 
@@ -88,6 +85,6 @@ def test_get_original_eml_case_3(mocker):
     client = EmailParserClient()
     mocker.patch("emailforwardparser.client.EmailParserClient._build_original_email", return_value=case_2_3)
     expected_send_to = "jane_doe@example.com"
-    data = json.loads(client.get_original_eml("fixtures/nonforward.eml"))
+    data = json.loads(client.get_original_eml_from_file("fixtures/nonforward.eml"))
     assert data["Send-To"] == expected_send_to
     assert data["eml"] == case_2_3

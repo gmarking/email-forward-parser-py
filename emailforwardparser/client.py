@@ -14,7 +14,25 @@ class EmailParserClient:
     A client for parsing email messages, with support for detecting and handling forwarded emails.
     """
 
-    def get_original_eml(self, file_path: str) -> str:
+    def get_original_eml(self, email: str) -> str:
+        """
+        Retrieve the original email message as a JSON string, including metadata and content.
+
+        :param email: Contents of email to be parsed.
+        :type file_path: str
+        :return: A JSON string containing the email metadata and content.
+        :rtype: str
+        """
+        msg = Parser().parsestr(email)
+        original_metadata = self._get_forwarded_metadata(msg)
+        if not original_metadata.forwarded:
+            eml = self._get_eml_attachment(msg)
+            if eml:
+                original_metadata = self._get_forwarded_metadata(eml)
+                msg = eml
+        return self._get_json(msg, original_metadata.email, original_metadata.forwarded)
+
+    def get_original_eml_from_file(self, file_path: str) -> str:
         """
         Retrieve the original email message as a JSON string, including metadata and content.
 
@@ -23,14 +41,7 @@ class EmailParserClient:
         :return: A JSON string containing the email metadata and content.
         :rtype: str
         """
-        msg = self._parse_file(file_path)
-        original_metadata = self._get_forwarded_metadata(msg)
-        if not original_metadata.forwarded:
-            eml = self._get_eml_attachment(msg)
-            if eml:
-                original_metadata = self._get_forwarded_metadata(eml)
-                msg = eml
-        return self._get_json(msg, original_metadata.email, original_metadata.forwarded)
+        return self.get_original_eml(self._get_file_content(file_path))
 
     def get_original_metadata(self, file_path: str) -> fp.ForwardMetadata:
         """
@@ -41,7 +52,7 @@ class EmailParserClient:
         :return: An object containing metadata of the original email.
         :rtype: fp.ForwardMetadata
         """
-        msg = self._parse_file(file_path)
+        msg = Parser().parsestr(self._get_file_content(file_path))
         return self._get_forwarded_metadata(msg)
 
     def _get_json(self, message: Message, email: fp.OriginalMetadata, forwarded: bool) -> str:
@@ -120,6 +131,6 @@ class EmailParserClient:
                 return part.get_payload()[0]
         return None
 
-    def _parse_file(self, file_name: str) -> Message:
-        with open(file_name, "r", encoding="utf8") as file:
-            return Parser().parse(file)
+    def _get_file_content(self, file_path: str) -> str:
+        with open(file_path, "r", encoding="utf8") as file:
+            return file.read()
