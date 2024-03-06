@@ -3,6 +3,7 @@ import re
 MAILBOX_SEPARATORS = [",", ";"]
 
 # Compile regex patterns
+QUOTE_LINE_BREAK_OPTIONAL = re.compile(r"(?m)^(>+)=20?$")
 QUOTE_LINE_BREAK = re.compile(r"(?m)^(>+)\s?$")
 QUOTE = re.compile(r"(?m)^(>+)\s?")
 FOUR_SPACES = re.compile(r"(?m)^(\ {4})\s?")

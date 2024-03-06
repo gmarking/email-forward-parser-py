@@ -51,6 +51,9 @@ def parse_body(body: str, forwarded: bool) -> ParseBodyResult:
     body = regexs.TRAILING_NON_BREAKING_SPACE.sub("", body)
     body = regexs.NON_BREAKING_SPACE.sub(" ", body)
     match = loop.loop_regexes_split(regexs.SEPARATOR, body, True)
+    # match[0]: message before fwd spearator
+    # match[1]: seperator
+    # match[2]: message after seperator
     if len(match) > 2:
         email = match[2]
         return ParseBodyResult(
@@ -74,13 +77,12 @@ def parse_body(body: str, forwarded: bool) -> ParseBodyResult:
 def parse_original_body(text: str) -> str:
     regexes = [regexs.ORIGINAL_SUBJECT, regexs.ORIGINAL_CC,
                regexs.ORIGINAL_TO, regexs.ORIGINAL_REPLY_TO]
-    current = 0
+
     for regex in regexes:
         match = loop.loop_regexes_split(regex, text, True)
         if len(match) > 2 and match[3].startswith("\n\n"):
             body = match[3]
             return body.strip()
-        current += 1
     match = loop.loop_regexes_split(
         regexs.ORIGINAL_SUBJECT + regexs.ORIGINAL_SUBJECT_LAX, text, True)
     if len(match) > 3:
@@ -92,6 +94,7 @@ def parse_original_body(text: str) -> str:
 
 def parse_original_email(text: str, body: str) -> OriginalMetadata:
     text = regexs.BYTE_ORDER_MARK.sub("", text)
+    text = regexs.QUOTE_LINE_BREAK_OPTIONAL.sub("", text)
     text = regexs.QUOTE_LINE_BREAK.sub("", text)
     text = regexs.QUOTE.sub("", text)
     text = regexs.FOUR_SPACES.sub("", text)

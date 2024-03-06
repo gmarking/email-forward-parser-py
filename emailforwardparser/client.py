@@ -19,9 +19,20 @@ class EmailParserClient:
         Retrieve the original email message as a JSON string, including metadata and content.
 
         :param email: Contents of email to be parsed.
-        :type file_path: str
+        :type email: str
         :return: A JSON string containing the email metadata and content.
         :rtype: str
+        """
+        return json.dumps(self.get_original_eml_json(email))
+
+    def get_original_eml_json(self, email: str) -> dict:
+        """
+        Retrieve the original email message as a dictionary, including metadata and content.
+
+        :param email: Contents of email to be parsed.
+        :type email: str
+        :return: A dictionary containing the email metadata and content.
+        :rtype: dict
         """
         msg = Parser().parsestr(email)
         original_metadata = self._get_forwarded_metadata(msg)
@@ -30,11 +41,11 @@ class EmailParserClient:
             if eml:
                 original_metadata = self._get_forwarded_metadata(eml)
                 msg = eml
-        return self._get_json(msg, original_metadata.email, original_metadata.forwarded)
+        return self._get_dict(msg, original_metadata.email, original_metadata.forwarded)
 
     def get_original_eml_from_file(self, file_path: str) -> str:
         """
-        Retrieve the original email message as a JSON string, including metadata and content.
+        Retrieve the original email message as a JSON str, including metadata and content.
 
         :param file_path: The path to the email file to parse.
         :type file_path: str
@@ -55,7 +66,7 @@ class EmailParserClient:
         msg = Parser().parsestr(self._get_file_content(file_path))
         return self._get_forwarded_metadata(msg)
 
-    def _get_json(self, message: Message, email: fp.OriginalMetadata, forwarded: bool) -> str:
+    def _get_dict(self, message: Message, email: fp.OriginalMetadata, forwarded: bool) -> dict:
         result = {}
         if forwarded:
             result["Send-To"] = email.to[0].address
@@ -63,7 +74,7 @@ class EmailParserClient:
         else:
             result["Send-To"] = re.search(r'[\w.+-]+@[\w-]+\.[\w.-]+', message.get("From")).group(0)
             result["eml"] = message.as_string()
-        return json.dumps(result)
+        return result
 
     def _build_original_email(self, metadata: fp.OriginalMetadata, message: Message) -> str:
         if not message.is_multipart():
