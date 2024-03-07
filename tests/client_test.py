@@ -1,30 +1,26 @@
-import json
-
 from emailforwardparser.client import EmailParserClient
 
 # case 1: forwarded email
 # case 2: non-forwarded, eml containing email
 # case 3: non-forwarded, eml non-containing email
 
-case_1 = """Content-Type: multipart/alternative; boundary="===============3905449656374455699=="
+case_1 = """Content-Type: multipart/mixed; boundary="===============7483602508082330894=="
 MIME-Version: 1.0
+Date: Thu, Feb 15, 2024 at 5:23=E2=80=AFPM
+From: jon_doe@example.com
+Subject: Test Email
+To: mary_doe@example.com
 
---===============3905449656374455699==
+--===============7483602508082330894==
 Content-Type: text/plain; charset="utf-8"
 MIME-Version: 1.0
 Content-Transfer-Encoding: quoted-printable
-
-Date: Thu, Feb 15, 2024 at 5:23=3DE2=3D80=3DAFPM
-Subject: Test Email
-From: jon_doe@example.com
-To: mary_doe@example.com
-
 
 Hello,
 This is a test email.
 Best,
 Jon
---===============3905449656374455699==
+--===============7483602508082330894==
 Content-Type: text/html; charset="UTF-8"
 Content-Transfer-Encoding: quoted-printable
 
@@ -39,7 +35,7 @@ m">marry_doe@example.com</a>&gt;<br></div><br><br><div dir=3D"ltr">Hello,=C2=A0=
 iv>
 </div></div>
 
---===============3905449656374455699==--"""
+--===============7483602508082330894==--"""
 
 case_2_3 = """MIME-Version: 1.0
 Date: Thu, 29 Feb 2024 14:51:03 -0800
@@ -65,26 +61,26 @@ Content-Type: text/html; charset="UTF-8"
 
 def test_get_original_eml_case_1(mocker):
     client = EmailParserClient()
-    mocker.patch("emailforwardparser.client.EmailParserClient._build_original_email", return_value=case_1)
+    mocker.patch("email.message.Message.as_string", return_value=case_1)
     expected_send_to = "mary_doe@example.com"
-    data = json.loads(client.get_original_eml_from_file("fixtures/forwarded.eml"))
+    data = client.get_original_eml_from_file("fixtures/forwarded.eml")
     assert data["Send-To"] == expected_send_to
     assert data["eml"] == case_1
 
 
 def test_get_original_eml_case_2(mocker):
     client = EmailParserClient()
-    mocker.patch("emailforwardparser.client.EmailParserClient._build_original_email", return_value=case_2_3)
+    mocker.patch("email.message.Message.as_string", return_value=case_2_3)
     expected_send_to = "jane_doe@example.com"
-    data = json.loads(client.get_original_eml_from_file("fixtures/non_forwarded_eml_attached.eml"))
+    data = client.get_original_eml_from_file("fixtures/non_forwarded_eml_attached.eml")
     assert data["Send-To"] == expected_send_to
     assert data["eml"] == case_2_3
 
 
 def test_get_original_eml_case_3(mocker):
     client = EmailParserClient()
-    mocker.patch("emailforwardparser.client.EmailParserClient._build_original_email", return_value=case_2_3)
+    mocker.patch("email.message.Message.as_string", return_value=case_2_3)
     expected_send_to = "jane_doe@example.com"
-    data = json.loads(client.get_original_eml_from_file("fixtures/nonforward.eml"))
+    data = client.get_original_eml_from_file("fixtures/nonforward.eml")
     assert data["Send-To"] == expected_send_to
     assert data["eml"] == case_2_3

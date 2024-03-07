@@ -1,6 +1,5 @@
 import json
 import re
-from email.charset import QP, Charset
 from email.message import EmailMessage, Message
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -14,20 +13,9 @@ class EmailParserClient:
     A client for parsing email messages, with support for detecting and handling forwarded emails.
     """
 
-    def get_original_eml(self, email: str) -> str:
+    def get_original_eml(self, email: str) -> dict:
         """
-        Retrieve the original email message as a JSON string, including metadata and content.
-
-        :param email: Contents of email to be parsed.
-        :type email: str
-        :return: A JSON string containing the email metadata and content.
-        :rtype: str
-        """
-        return json.dumps(self.get_original_eml_json(email))
-
-    def get_original_eml_json(self, email: str) -> dict:
-        """
-        Retrieve the original email message as a dictionary, including metadata and content.
+        Retrieve the original email message as a dict, including metadata and content.
 
         :param email: Contents of email to be parsed.
         :type email: str
@@ -43,7 +31,29 @@ class EmailParserClient:
                 msg = eml
         return self._get_dict(msg, original_metadata.email, original_metadata.forwarded)
 
-    def get_original_eml_from_file(self, file_path: str) -> str:
+    def get_original_eml_json(self, email: str) -> str:
+        """
+        Retrieve the original email message as a JSON string, including metadata and content.
+
+        :param email: Contents of email to be parsed.
+        :type email: str
+        :return: A JSON string containing the email metadata and content.
+        :rtype: str
+        """
+        return json.dumps(self.get_original_eml(email))
+
+    def get_original_eml_from_file(self, file_path: str) -> dict:
+        """
+        Retrieve the original email message as a JSON str, including metadata and content.
+
+        :param file_path: The path to the email file to parse.
+        :type file_path: str
+        :return: A dictionary containing the original receiver and eml content.
+        :rtype: dict
+        """
+        return self.get_original_eml(self._get_file_content(file_path))
+
+    def get_original_eml_json_from_file(self, file_path: str) -> str:
         """
         Retrieve the original email message as a JSON str, including metadata and content.
 
@@ -52,7 +62,7 @@ class EmailParserClient:
         :return: A JSON string containing the email metadata and content.
         :rtype: str
         """
-        return self.get_original_eml(self._get_file_content(file_path))
+        return json.dumps(self.get_original_eml(self._get_file_content(file_path)))
 
     def get_original_metadata(self, file_path: str) -> fp.ForwardMetadata:
         """
@@ -70,42 +80,45 @@ class EmailParserClient:
         result = {}
         if forwarded:
             result["Send-To"] = email.to[0].address
-            result["eml"] = self._build_original_email(email, message)
+            result["eml"] = self._build_original_email(email, message).as_string()
         else:
             result["Send-To"] = re.search(r'[\w.+-]+@[\w-]+\.[\w.-]+', message.get("From")).group(0)
             result["eml"] = message.as_string()
         return result
 
-    def _build_original_email(self, metadata: fp.OriginalMetadata, message: Message) -> str:
+    def _build_original_email(self, metadata: fp.OriginalMetadata, message: Message) -> EmailMessage | MIMEMultipart:
         if not message.is_multipart():
             result_message = EmailMessage()
-            result_message.set_payload(self._get_headers(metadata) + metadata.body)
+            self._set_headers(metadata, message, result_message)
             result_message.set_content(metadata.body)
-            return result_message.as_string()
+            return result_message
 
-        result_message = MIMEMultipart('alternative')
+        result = MIMEMultipart()
+        self._set_headers(metadata, message, result)
 
-        cs = Charset("UTF-8")
-        cs.body_encoding = QP
-        result_message.attach(MIMEText(self._get_headers(metadata) + metadata.body, "plain", _charset=cs))
+        if metadata.cc:
+            result["CC"] = self._format_addresses(metadata.cc)
+
+        mt = MIMEText(None, _subtype="plain", _charset="utf-8")
+        mt.replace_header("content-transfer-encoding", "quoted-printable")
+        mt.set_payload(metadata.body)
+        result.attach(mt)
         payload = message.get_payload()
         if isinstance(payload, list):
             for part in payload:
                 if (part.get_content_type() == 'text/plain'
                         and 'attachment' not in str(part.get('Content-Disposition'))):
                     continue
-                result_message.attach(part)
-        return result_message.as_string()
+                result.attach(part)
+        return result
 
-    def _get_headers(self, metadata: fp.OriginalMetadata) -> str:
-        result = ""
-        result += "Date: " + metadata.date + "\n"
-        result += "Subject: " + metadata.subject + "\n"
-        result += "From: " + metadata.from_.address + "\n"
-        result += "To: " + self._format_addresses(metadata.to) + "\n"
+    def _set_headers(self, metadata: fp.OriginalMetadata, message: Message, result: EmailMessage | Message) -> None:
+        result["Date"] = metadata.date
+        result["From"] = metadata.from_.address
+        result["Subject"] = metadata.subject
+        result["To"] = self._format_addresses(metadata.to)
         if metadata.cc:
-            result += self._format_addresses(metadata.cc) + "\n"
-        return result + "\n\n"
+            result["CC"] = self._format_addresses(metadata.cc)
 
     def _format_addresses(self, contacts: list[fp.MailboxResult]) -> str:
         result = contacts[0].address
