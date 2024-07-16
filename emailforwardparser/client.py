@@ -82,7 +82,7 @@ class EmailParserClient:
             result["Send-To"] = email.to[0].address
             result["eml"] = self._build_original_email(email, message).as_string()
         else:
-            result["Send-To"] = re.search(r'[\w.+-]+@[\w-]+\.[\w.-]+', message.get("From:")).group(0)
+            result["Send-To"] = re.search(r'[\w.+-]+@[\w-]+\.[\w.-]+', message.get("From")).group(0)
             result["eml"] = message.as_string()
         return result
 
