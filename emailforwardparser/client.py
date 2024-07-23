@@ -79,7 +79,7 @@ class EmailParserClient:
     def _get_dict(self, message: Message, email: fp.OriginalMetadata, forwarded: bool) -> dict:
         result = {}
         if forwarded:
-            result["Send-To"] = email.to[0].address
+            result["Send-To"] = email.from_.address
             result["eml"] = self._build_original_email(email, message).as_string()
         else:
             result["Send-To"] = re.search(r'[\w.+-]+@[\w-]+\.[\w.-]+', message.get("From")).group(0)
@@ -135,6 +135,7 @@ class EmailParserClient:
         return fp.get_forwarded_metadata(body.strip())
 
     def _get_body(self, msg: Message) -> str:
+        body = ''
         if msg.is_multipart():
             for part in msg.walk():
                 content_type = part.get_content_type()
