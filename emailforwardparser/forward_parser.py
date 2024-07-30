@@ -70,7 +70,6 @@ def parse_body(body: str, forwarded: bool) -> ParseBodyResult:
             return ParseBodyResult(
                 body=body, message=match[0].strip(), email=email.strip()
             )
-
     return ParseBodyResult()
 
 
@@ -88,7 +87,6 @@ def parse_original_body(text: str) -> str:
     if len(match) > 3:
         body = match[3]
         return body.strip()
-
     return text.strip()
 
 
@@ -130,7 +128,6 @@ def parse_original_from(text: str, body: str) -> MailboxResult:
         name = match[2]
         address = match[3]
         return prepare_mailbox(name, address)
-
     return MailboxResult()
 
 
@@ -162,7 +159,6 @@ def parse_original_subject(text: str) -> str:
     match, _ = loop.loop_regexes_match(regexs.ORIGINAL_SUBJECT_LAX, text)
     if match:
         return match[1].strip()
-
     return ""
 
 
@@ -181,7 +177,6 @@ def parse_original_date(text: str, body: str) -> str:
     match, _ = loop.loop_regexes_match(regexs.ORIGINAL_DATE_LAX, text)
     if match:
         return match[1].strip()
-
     return ""
 
 
