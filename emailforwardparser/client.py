@@ -32,12 +32,11 @@ class EmailParserClient:
         """
         msg = Parser().parsestr(email)
         matches = EMAIL_ADDR_REGEX.search(msg.get("From", ''))
-        send_to = matches.groups(0) if matches else ''
+        send_to = matches.group(0) if matches else ''
         original_metadata = self._get_forwarded_metadata(msg)
         if not original_metadata.forwarded:
             eml = self._get_eml_attachment(msg)
             if eml:
-                original_metadata = self._get_forwarded_metadata(eml)
                 msg = eml
         return self._get_dict(msg, original_metadata.email, original_metadata.forwarded, send_to=send_to)
 
@@ -187,11 +186,7 @@ class EmailParserClient:
             return file.read()
 
     def get_decoded_str(self, s) -> str:
-        return base64.b64decode(s).decode() if self.is_base64(s) else s
-
-    def is_base64(self, s: str) -> bool:
         try:
-            res = base64.b64encode(base64.b64decode(s)).decode().replace('\n', '') == s.replace('\n', '')
-            return res
+            return base64.b64decode(s).decode()
         except Exception:
-            return False
+            return s
