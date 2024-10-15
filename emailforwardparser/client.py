@@ -128,7 +128,7 @@ class EmailParserClient:
                     payload.extend(part.get_payload())
                     continue
                 if part.get_content_type() == 'text/html':
-                    part.set_payload(self.get_decoded_str(part.get_payload()))
+                    part.set_payload(part.get_payload())
                 result.attach(part)
         return result
 
@@ -172,8 +172,8 @@ class EmailParserClient:
 
     def _get_eml_attachment(self, message: Message) -> Message | None:
         for part in message.walk():
-            file_name = part.get_filename()
-            if (file_name is not None and file_name.endswith(".eml")):
+            content_type = part.get_content_type()
+            if content_type is not None and content_type.startswith('message/rfc'):
                 try:
                     return part.get_payload()[0]
                 except Exception:
