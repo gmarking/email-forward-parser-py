@@ -173,7 +173,7 @@ class EmailParserClient:
     def _get_eml_attachment(self, message: Message) -> Message | None:
         for part in message.walk():
             content_type = part.get_content_type()
-            if content_type is not None and content_type.startswith('message/rfc'):
+            if content_type is not None and content_type == 'message/rfc822':
                 try:
                     return part.get_payload()[0]
                 except Exception:
